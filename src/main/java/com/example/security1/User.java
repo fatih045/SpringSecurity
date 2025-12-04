@@ -3,6 +3,8 @@ package com.example.security1;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -10,6 +12,7 @@ import java.util.Set;
 @Entity
 @Table(name = "users")
 @Data
+
 public class User   {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

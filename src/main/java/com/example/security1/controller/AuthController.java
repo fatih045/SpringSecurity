@@ -1,0 +1,109 @@
+package com.example.security1.controller;
+
+
+import com.example.security1.Dto.AuthResponse;
+import com.example.security1.Dto.LoginRequest;
+import com.example.security1.Dto.RegisterRequest;
+import com.example.security1.JwtUtil;
+import com.example.security1.User;
+import com.example.security1.UserRepository;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.HashSet;
+
+@RestController
+@RequestMapping("/api/auth")
+public class AuthController {
+
+
+    private  final AuthenticationManager authenticationManager;
+
+    private final UserDetailsService userDetailsService;
+
+    private  final PasswordEncoder passwordEncoder;
+
+    private  final JwtUtil jwtUtil;
+
+    private final UserRepository userRepository;
+
+
+    public AuthController(AuthenticationManager authenticationManager,
+                          UserDetailsService userDetailsService,
+                          PasswordEncoder passwordEncoder,
+                          JwtUtil jwtUtil,
+                          UserRepository userRepository) {
+        this.authenticationManager = authenticationManager;
+        this.userDetailsService = userDetailsService;
+        this.passwordEncoder = passwordEncoder;
+        this.jwtUtil = jwtUtil;
+        this.userRepository = userRepository;
+    }
+
+    @PostMapping ("/register")
+    public ResponseEntity<?>  register(@RequestBody RegisterRequest registerRequest) {
+
+        if (userRepository.existsByUsername(registerRequest.getUsername())) {
+            return ResponseEntity.badRequest().body("Username is already taken");
+        }
+
+        if (userRepository.existsByEmail(registerRequest.getEmail())) {
+            return ResponseEntity.badRequest().body("Email is already in use");
+        }
+
+
+        User user = new User();
+        user.setUsername(registerRequest.getUsername());
+        user.setEmail(registerRequest.getEmail());
+        user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
+
+        if (registerRequest.getRoles() ==null || registerRequest.getRoles().isEmpty()) {
+            user.setRoles(new HashSet<>());
+            user.getRoles().add("ROLE_USER");
+        }
+        else {
+            user.setRoles(registerRequest.getRoles());
+        }
+
+        userRepository.save(user);
+
+        return ResponseEntity.ok("User registered succesfully");
+
+
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<?>  login(@RequestBody LoginRequest loginRequest) {
+        try {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword())
+            );
+        }
+        catch (BadCredentialsException e) {
+            return ResponseEntity.badRequest().body("Error: Invalid username or password");
+        }
+
+        final UserDetails userDetails = userDetailsService.loadUserByUsername(loginRequest.getUsername());
+
+        final  String jwt =jwtUtil.generateToken(userDetails);
+
+        return  ResponseEntity.ok(new AuthResponse(jwt,loginRequest.getUsername()));
+    }
+
+
+
+
+
+
+
+
+}
