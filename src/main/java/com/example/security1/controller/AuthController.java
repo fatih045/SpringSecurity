@@ -4,6 +4,7 @@ package com.example.security1.controller;
 import com.example.security1.Dto.AuthResponse;
 import com.example.security1.Dto.LoginRequest;
 import com.example.security1.Dto.RegisterRequest;
+import com.example.security1.Dto.Response.CustomResponse;
 import com.example.security1.JwtUtil;
 import com.example.security1.User;
 import com.example.security1.UserRepository;
@@ -49,59 +50,86 @@ public class AuthController {
         this.userRepository = userRepository;
     }
 
-    @PostMapping ("/register")
-    public ResponseEntity<?>  register(@RequestBody RegisterRequest registerRequest) {
+
+
+
+
+    @PostMapping("/register")
+    public ResponseEntity<CustomResponse<?>> register(@RequestBody RegisterRequest registerRequest) {
 
         if (userRepository.existsByUsername(registerRequest.getUsername())) {
-            return ResponseEntity.badRequest().body("Username is already taken");
+            CustomResponse<String> response = CustomResponse.<String>builder()
+                    .success(false)
+                    .message("Error: Username is already taken")
+                    .data(null)
+                    .build();
+            return ResponseEntity.badRequest().body(response);
         }
 
         if (userRepository.existsByEmail(registerRequest.getEmail())) {
-            return ResponseEntity.badRequest().body("Email is already in use");
+            CustomResponse<String> response = CustomResponse.<String>builder()
+                    .success(false)
+                    .message("Error: Email is already in use")
+                    .data(null)
+                    .build();
+            return ResponseEntity.badRequest().body(response);
         }
-
 
         User user = new User();
         user.setUsername(registerRequest.getUsername());
         user.setEmail(registerRequest.getEmail());
         user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
 
-        if (registerRequest.getRoles() ==null || registerRequest.getRoles().isEmpty()) {
+        if (registerRequest.getRoles() == null || registerRequest.getRoles().isEmpty()) {
             user.setRoles(new HashSet<>());
             user.getRoles().add("ROLE_USER");
-        }
-        else {
+        } else {
             user.setRoles(registerRequest.getRoles());
         }
 
         userRepository.save(user);
 
-        return ResponseEntity.ok("User registered succesfully");
+        CustomResponse<String> response = CustomResponse.<String>builder()
+                .success(true)
+                .message("User registered successfully")
+                .data(null)
+                .build();
 
-
+        return ResponseEntity.ok(response);
     }
 
+
+
+
     @PostMapping("/login")
-    public ResponseEntity<?>  login(@RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<CustomResponse<?>> login(@RequestBody LoginRequest loginRequest) {
         try {
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword())
             );
-        }
-        catch (BadCredentialsException e) {
-            return ResponseEntity.badRequest().body("Error: Invalid username or password");
+        } catch (BadCredentialsException e) {
+            CustomResponse<String> response = CustomResponse.<String>builder()
+                    .success(false)
+                    .message("Error: Invalid username or password")
+                    .data(null)
+                    .build();
+            return ResponseEntity.badRequest().body(response);
         }
 
         final UserDetails userDetails = userDetailsService.loadUserByUsername(loginRequest.getUsername());
 
-        final  String jwt =jwtUtil.generateToken(userDetails);
+        final String jwt = jwtUtil.generateToken(userDetails);
 
-        return  ResponseEntity.ok(new AuthResponse(jwt,loginRequest.getUsername()));
+        AuthResponse authResponse = new AuthResponse(jwt, loginRequest.getUsername());
+
+        CustomResponse<AuthResponse> response = CustomResponse.<AuthResponse>builder()
+                .success(true)
+                .message("Login successful")
+                .data(authResponse)
+                .build();
+
+        return ResponseEntity.ok(response);
     }
-
-
-
-
 
 
 
