@@ -7,6 +7,7 @@ import com.example.security1.Dto.RegisterRequest;
 import com.example.security1.Dto.Request.VerifyRequest;
 import com.example.security1.Dto.Response.CustomResponse;
 import com.example.security1.EmailService;
+import com.example.security1.exception.*;
 import com.example.security1.util.CodeGenerator;
 import com.example.security1.util.JwtUtil;
 import com.example.security1.User;
@@ -67,21 +68,11 @@ public class AuthController {
     public ResponseEntity<CustomResponse<?>> register(@RequestBody RegisterRequest registerRequest) {
 
         if (userRepository.existsByUsername(registerRequest.getUsername())) {
-            CustomResponse<String> response = CustomResponse.<String>builder()
-                    .success(false)
-                    .message("Error: Username is already taken")
-                    .data(null)
-                    .build();
-            return ResponseEntity.badRequest().body(response);
+            throw  new UserAlreadyExistException("Error: Username is already taken");
         }
 
         if (userRepository.existsByEmail(registerRequest.getEmail())) {
-            CustomResponse<String> response = CustomResponse.<String>builder()
-                    .success(false)
-                    .message("Error: Email is already in use")
-                    .data(null)
-                    .build();
-            return ResponseEntity.badRequest().body(response);
+            throw  new UserAlreadyExistException("Error: Email is already in use");
         }
 
         User user = new User();
@@ -107,24 +98,20 @@ public class AuthController {
 
 
 
+        emailService.senderVerificationMail(user.getEmail(),verificationCode);
+        CustomResponse<String > response = CustomResponse.<String>builder()
+                .success(true)
+                .message("User registered successfully. Verification email sent.")
+                .data(null)
+                .build();
 
-        try {
-            emailService.senderVerificationMail(user.getEmail(), verificationCode);
-            CustomResponse<String> response = CustomResponse.<String>builder()
-                    .success(true)
-                    .message("User registered successfully. Verification email sent.")
-                    .data(null)
-                    .build();
-            return ResponseEntity.ok(response);
-        }
-        catch (Exception e) {
-            CustomResponse<String> response = CustomResponse.<String>builder()
-                    .success(false)
-                    .message("User registered but failed to send verification email: " + e.getMessage())
-                    .data(null)
-                    .build();
-            return ResponseEntity.ok(response);
-        }
+        return ResponseEntity.ok(response);
+
+
+
+
+
+       // failed to send email exception handle in email service
 
     }
 
@@ -132,32 +119,17 @@ public class AuthController {
     @PostMapping("verify")
     public ResponseEntity<CustomResponse<?>> verifyEmail(@RequestBody VerifyRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("User not found!"));
+                .orElseThrow(() -> new UserNotFoundException("User not found!"));
 
         if (user.getVerified()) {
-            CustomResponse<String> response = CustomResponse.<String>builder()
-                    .success(false)
-                    .message("Error: Invalid verification code")
-                    .data(null)
-                    .build();
-            return ResponseEntity.badRequest().body(response);
+            throw  new EmailAlreadyVerifiedException();
         }
 
         if (user.getVerificationCodeExpiry().isBefore(LocalDateTime.now())) {
-            CustomResponse<String> response = CustomResponse.<String>builder()
-                    .success(false)
-                    .message("Error: Verification code has expired")
-                    .data(null)
-                    .build();
-            return ResponseEntity.badRequest().body(response);
+            throw  new VerificationCodeExpiredException();
         }
         if (!user.getVerificationCode().equals(request.getCode())) {
-            CustomResponse<String> response = CustomResponse.<String>builder()
-                    .success(false)
-                    .message("Error: Invalid verification code")
-                    .data(null)
-                    .build();
-            return ResponseEntity.badRequest().body(response);
+           throw new InvalidVerificationException();
         }
 
         user.setVerified(true);
@@ -180,30 +152,19 @@ public class AuthController {
     public ResponseEntity<CustomResponse<?>> login(@RequestBody LoginRequest loginRequest) {
 
          User user = userRepository.findByUsername(loginRequest.getUsername())
-                .orElseThrow(() -> new RuntimeException("User not found!"));
+                .orElseThrow(() -> new UserNotFoundException());
 
          if (!user.getVerified()) {
-             CustomResponse<String> response = CustomResponse.<String>builder()
-                     .success(false)
-                     .message("Error: Email is not verified")
-                     .data(null)
-                     .build();
-             return ResponseEntity.badRequest().body(response);
+             throw new EmailNotVerifiedException();
          }
+        authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                        loginRequest.getUsername(),
+                        loginRequest.getPassword()
+                )
+        );    // bad credentails yok otomatik yakalndı bu kısm
 
 
-        try {
-            authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword())
-            );
-        } catch (BadCredentialsException e) {
-            CustomResponse<String> response = CustomResponse.<String>builder()
-                    .success(false)
-                    .message("Error: Invalid username or password")
-                    .data(null)
-                    .build();
-            return ResponseEntity.badRequest().body(response);
-        }
 
         final UserDetails userDetails = userDetailsService.loadUserByUsername(loginRequest.getUsername());
 

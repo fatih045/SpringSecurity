@@ -1,7 +1,8 @@
 package com.example.security1.exception;
 
 
-import com.example.security1.Dto.Response.ErrorResponse;
+import com.example.security1.Dto.Response.CustomResponse;
+
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
@@ -18,119 +19,137 @@ public class GlobalExceptionHandler {
     //404 - user not found
 
     @ExceptionHandler(UserNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handlerUserNotFound(UserNotFoundException ex, HttpServletRequest request) {
-        ErrorResponse error = new ErrorResponse(
-                HttpStatus.NOT_FOUND.value(),
-                ex.getMessage(),
-                request.getRequestURI()
-        );
-
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+    public ResponseEntity<CustomResponse<Object>> handlerUserNotFound(UserNotFoundException ex, HttpServletRequest request) {
+       CustomResponse<Object> response =  CustomResponse.builder()
+                .success(false)
+                .message(ex.getMessage())
+                .status(HttpStatus.NOT_FOUND.value())
+                .path(request.getRequestURI())
+                .build();
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
     }
 
     // Email 400 not verified
     @ExceptionHandler(EmailNotVerifiedException.class)
-    public ResponseEntity<ErrorResponse> handlerEmailNotVerified(EmailNotVerifiedException ex, HttpServletRequest request) {
-        ErrorResponse error = new ErrorResponse(
-                HttpStatus.BAD_REQUEST.value(),
-                ex.getMessage(),
-                request.getRequestURI()
-        );
+    public ResponseEntity<CustomResponse<Object>> handlerEmailNotVerified(EmailNotVerifiedException ex, HttpServletRequest request) {
+       CustomResponse <Object> response =CustomResponse.builder()
+                .success(false)
+                .message(ex.getMessage())
+                .status(HttpStatus.BAD_REQUEST.value())
+                .path(request.getRequestURI())
+                .build();
 
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
+    @ExceptionHandler(EmailAlreadyVerifiedException.class)
+    public ResponseEntity<CustomResponse<Object>> handlerEmailAlreadyVerified(EmailAlreadyVerifiedException ex, HttpServletRequest request) {
+       CustomResponse <Object> response =CustomResponse.builder()
+                .success(false)
+                .message(ex.getMessage())
+                .status(HttpStatus.BAD_REQUEST.value())
+                .path(request.getRequestURI())
+                .build();
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 
     //400 - invalid verification code
 
     @ExceptionHandler(InvalidVerificationException.class)
-    public ResponseEntity<ErrorResponse> handlerInvalidVerification(InvalidVerificationException ex, HttpServletRequest request) {
-        ErrorResponse error = new ErrorResponse(
-                HttpStatus.BAD_REQUEST.value(),
-                ex.getMessage(),
-                request.getRequestURI()
-        );
+    public ResponseEntity<CustomResponse<Object>> handlerInvalidVerification(InvalidVerificationException ex, HttpServletRequest request) {
+      CustomResponse <Object> response = CustomResponse.builder()
+                .success(false)
+                .message(ex.getMessage())
+                .status(HttpStatus.BAD_REQUEST.value())
+                .path(request.getRequestURI())
+                .build();
 
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
 
     }
 
     //400 - verification code expired
 
     @ExceptionHandler(VerificationCodeExpiredException.class)
-    public ResponseEntity<ErrorResponse> handlerVerificationCodeExpired(VerificationCodeExpiredException ex, HttpServletRequest request) {
-        ErrorResponse error = new ErrorResponse(
-                HttpStatus.BAD_REQUEST.value(),
-                ex.getMessage(),
-                request.getRequestURI()
-        );
-
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    public ResponseEntity<CustomResponse<Object>> handlerVerificationCodeExpired(VerificationCodeExpiredException ex, HttpServletRequest request) {
+            CustomResponse<Object> response = CustomResponse.builder()
+                .success(false)
+                .message(ex.getMessage())
+                .status(HttpStatus.BAD_REQUEST.value())
+                .path(request.getRequestURI())
+                .build();
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
 
     }
 
     //409 -user Already exist
     @ExceptionHandler(UserAlreadyExistException.class)
-    public ResponseEntity<ErrorResponse> handlerUserAlreadyExist(UserAlreadyExistException ex, HttpServletRequest request) {
-        ErrorResponse error = new ErrorResponse(
-                HttpStatus.CONFLICT.value(),
-                ex.getMessage(),
-                request.getRequestURI()
-        );
+    public ResponseEntity<CustomResponse<Object>> handlerUserAlreadyExist(UserAlreadyExistException ex, HttpServletRequest request) {
+      CustomResponse<Object> response =  CustomResponse.builder()
+                .success(false)
+                .message(ex.getMessage())
+                .status(HttpStatus.CONFLICT.value())
+                .path(request.getRequestURI())
+                .build();
 
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
     }
 
 
     //500  email send failed
     @ExceptionHandler(EmailSendException.class)
-    public ResponseEntity<ErrorResponse> handleEmailSendFail(EmailSendException ex, HttpServletRequest request) {
-        ErrorResponse error = new ErrorResponse(
-                HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                ex.getMessage(),
-                request.getRequestURI()
-        );
-
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+    public ResponseEntity<CustomResponse<Object>> handleEmailSendFail(EmailSendException ex, HttpServletRequest request) {
+        CustomResponse<Object> response = CustomResponse.builder()
+                .success(false)
+                .message("Failed to send email. Please try again later.")
+                .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                .path(request.getRequestURI())
+                .build();
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
 
     // 401 bad credential
     @ExceptionHandler(BadCredentialsException.class)
-    public ResponseEntity<ErrorResponse> handleBadCredential(BadCredentialsException ex, HttpServletRequest request) {
-        ErrorResponse error = new ErrorResponse(
-                HttpStatus.UNAUTHORIZED.value(),
-                "Invalid username or password",
-                request.getRequestURI()
-        );
+    public ResponseEntity<CustomResponse<Object>> handleBadCredential(BadCredentialsException ex, HttpServletRequest request) {
+        CustomResponse<Object> response = CustomResponse.builder()
+                .success(false)
+                .message("Invalid username or password")
+                .status(HttpStatus.UNAUTHORIZED.value())
+                .path(request.getRequestURI())
+                .build();
 
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
     }
 
     // 404 username not found
     @ExceptionHandler(UsernameNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleUsernameNotFound(UsernameNotFoundException ex, HttpServletRequest request) {
-        ErrorResponse error = new ErrorResponse(
-                HttpStatus.NOT_FOUND.value(),
-                ex.getMessage(),
-                request.getRequestURI()
-        );
+    public ResponseEntity<CustomResponse<Object>> handleUsernameNotFound(UsernameNotFoundException ex, HttpServletRequest request) {
+        CustomResponse<Object> response = CustomResponse.builder()
+                .success(false)
+                .message(ex.getMessage())
+                .status(HttpStatus.NOT_FOUND.value())
+                .path(request.getRequestURI())
+                .build();
 
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleGenericException(Exception ex, HttpServletRequest request) {
+    public ResponseEntity<CustomResponse<Object>> handleGenericException(Exception ex, HttpServletRequest request) {
 
         System.err.println("Unexpected error: " + ex.getMessage());
         ex.printStackTrace();
 
 
-        ErrorResponse error = new ErrorResponse(
-                HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                "An unexpected error occurred",
-                request.getRequestURI()
-        );
+        CustomResponse<Object> response = CustomResponse.builder()
+                .success(false)
+                .message("An unexpected error occurred.")
+                .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                .path(request.getRequestURI())
+                .build();
 
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
 
 
