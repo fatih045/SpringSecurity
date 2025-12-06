@@ -1,0 +1,13 @@
+package com.example.security1.util;
+
+import java.security.SecureRandom;
+
+public class CodeGenerator {
+
+    private static  final SecureRandom random = new SecureRandom();
+
+    public static String generateVerificationCode() {
+        int code = 100000 + random.nextInt(900000);
+        return String.valueOf(code);
+    }
+}

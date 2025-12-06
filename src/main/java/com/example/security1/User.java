@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -32,5 +33,14 @@ public class User   {
             joinColumns = @JoinColumn(name = "user_id"))
     @Column(name = "role")
     private Set<String> roles = new HashSet<>();
+
+
+
+    @Column(nullable = false)
+    private Boolean verified = false;  // Varsayılan false
+
+    private String verificationCode;
+
+    private LocalDateTime verificationCodeExpiry;
 
 }
