@@ -1,11 +1,8 @@
 package com.example.security1.controller;
 
 
-import com.example.security1.Dto.Request.LogoutRequest;
+import com.example.security1.Dto.Request.*;
 import com.example.security1.Dto.Response.AuthResponse;
-import com.example.security1.Dto.Request.LoginRequest;
-import com.example.security1.Dto.Request.RegisterRequest;
-import com.example.security1.Dto.Request.VerifyRequest;
 import com.example.security1.Dto.Response.CustomResponse;
 import com.example.security1.entity.RefreshToken;
 import com.example.security1.service.EmailService;
@@ -22,6 +19,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -209,6 +207,59 @@ public class AuthController {
                 .build();
 
         return ResponseEntity.ok(response);
+
+
+
+    }
+
+    @PostMapping("/refresh")
+    @Transactional
+    public  ResponseEntity<CustomResponse<?>>  refreshToken(@RequestBody RefreshTokenRequest request) {
+
+       RefreshToken oldRefreshToken = refreshTokenService.findByToken(request.getRefreshToken());
+
+      oldRefreshToken =refreshTokenService.verifyExpirationDate(oldRefreshToken);
+
+
+      User user=oldRefreshToken.getUser();
+
+      UserDetails userDetails= userDetailsService.loadUserByUsername(user.getUsername());
+
+      String newAccessToken= jwtUtil.generateToken(userDetails);
+
+
+
+      // yeni refresh token (rotation)
+      RefreshToken newRefreshToken= refreshTokenService.createRefreshToken( user.getUsername());
+
+
+      refreshTokenService.deleteByToken(oldRefreshToken.getToken());
+
+        AuthResponse authResponse = AuthResponse.builder()
+                .accessToken(newAccessToken)
+                .refreshToken(newRefreshToken.getToken())
+                .type("Bearer")
+                .username(userDetails.getUsername())
+                .build();
+
+        CustomResponse<AuthResponse> response = CustomResponse.<AuthResponse>builder()
+                .success(true)
+                .message("Token refreshed successfully")
+                .data(authResponse)
+                .build();
+
+        return ResponseEntity.ok(response);
+
+
+
+
+
+
+
+
+
+
+
 
 
 
