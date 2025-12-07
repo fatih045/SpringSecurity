@@ -11,6 +11,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentConversionNotSupportedException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -152,6 +153,42 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
 
+    @ExceptionHandler(MethodArgumentConversionNotSupportedException.class)
+    public ResponseEntity<CustomResponse<Object>> handleMethodArgumentConversionNotSupportedException(MethodArgumentConversionNotSupportedException ex, HttpServletRequest request) {
+        CustomResponse<Object> response = CustomResponse.builder()
+                .success(false)
+                .message("Invalid input type provided.")
+                .status(HttpStatus.BAD_REQUEST.value())
+                .path(request.getRequestURI())
+                .build();
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
+
+    @ExceptionHandler(RefreshTokenExpiredException.class)
+    public ResponseEntity<CustomResponse<Object>> handleRefreshTokenExpiredException(RefreshTokenExpiredException ex, HttpServletRequest request) {
+        CustomResponse<Object> response = CustomResponse.builder()
+                .success(false)
+                .message(ex.getMessage())
+                .status(HttpStatus.UNAUTHORIZED.value())
+                .path(request.getRequestURI())
+                .build();
+
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+    }
+
+    @ExceptionHandler(RefreshTokenNotFoundException.class)
+    public ResponseEntity<CustomResponse<Object>> handleRefreshTokenNotFoundException(RefreshTokenNotFoundException ex, HttpServletRequest request) {
+        CustomResponse<Object> response = CustomResponse.builder()
+                .success(false)
+                .message(ex.getMessage())
+                .status(HttpStatus.NOT_FOUND.value())
+                .path(request.getRequestURI())
+                .build();
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+    }
 
 
 

@@ -1,10 +1,8 @@
-package com.example.security1;
+package com.example.security1.entity;
 
 
 import jakarta.persistence.*;
 import lombok.Data;
-import lombok.Getter;
-import lombok.Setter;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;

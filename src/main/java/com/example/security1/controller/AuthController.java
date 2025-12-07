@@ -1,20 +1,23 @@
 package com.example.security1.controller;
 
 
-import com.example.security1.Dto.AuthResponse;
-import com.example.security1.Dto.LoginRequest;
-import com.example.security1.Dto.RegisterRequest;
+import com.example.security1.Dto.Request.LogoutRequest;
+import com.example.security1.Dto.Response.AuthResponse;
+import com.example.security1.Dto.Request.LoginRequest;
+import com.example.security1.Dto.Request.RegisterRequest;
 import com.example.security1.Dto.Request.VerifyRequest;
 import com.example.security1.Dto.Response.CustomResponse;
-import com.example.security1.EmailService;
+import com.example.security1.entity.RefreshToken;
+import com.example.security1.service.EmailService;
 import com.example.security1.exception.*;
+import com.example.security1.service.RefreshTokenService;
 import com.example.security1.util.CodeGenerator;
 import com.example.security1.util.JwtUtil;
-import com.example.security1.User;
-import com.example.security1.UserRepository;
+import com.example.security1.entity.User;
+import com.example.security1.repository.UserRepository;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -41,6 +44,8 @@ public class AuthController {
 
     private  final JwtUtil jwtUtil;
 
+    private final RefreshTokenService refreshTokenService;
+
     private final UserRepository userRepository;
     private final RestClient.Builder builder;
     private final EmailService emailService;
@@ -49,12 +54,13 @@ public class AuthController {
     public AuthController(AuthenticationManager authenticationManager,
                           UserDetailsService userDetailsService,
                           PasswordEncoder passwordEncoder,
-                          JwtUtil jwtUtil,
+                          JwtUtil jwtUtil, RefreshTokenService refreshTokenService,
                           UserRepository userRepository, RestClient.Builder builder, EmailService emailService) {
         this.authenticationManager = authenticationManager;
         this.userDetailsService = userDetailsService;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
+        this.refreshTokenService = refreshTokenService;
         this.userRepository = userRepository;
         this.builder = builder;
         this.emailService = emailService;
@@ -65,7 +71,7 @@ public class AuthController {
 
 
     @PostMapping("/register")
-    public ResponseEntity<CustomResponse<?>> register(@RequestBody RegisterRequest registerRequest) {
+    public ResponseEntity<CustomResponse<?>> register(@Valid  @RequestBody RegisterRequest registerRequest) {
 
         if (userRepository.existsByUsername(registerRequest.getUsername())) {
             throw  new UserAlreadyExistException("Error: Username is already taken");
@@ -168,9 +174,16 @@ public class AuthController {
 
         final UserDetails userDetails = userDetailsService.loadUserByUsername(loginRequest.getUsername());
 
-        final String jwt = jwtUtil.generateToken(userDetails);
+        final String accessToken = jwtUtil.generateToken(userDetails);
 
-        AuthResponse authResponse = new AuthResponse(jwt, loginRequest.getUsername());
+        RefreshToken refreshToken = refreshTokenService.createRefreshToken(loginRequest.getUsername());
+
+        AuthResponse authResponse = AuthResponse.builder()
+                .accessToken(accessToken)
+                .refreshToken(refreshToken.getToken())
+                .type("Bearer")
+                .username(userDetails.getUsername())
+                .build();
 
         CustomResponse<AuthResponse> response = CustomResponse.<AuthResponse>builder()
                 .success(true)
@@ -179,6 +192,26 @@ public class AuthController {
                 .build();
 
         return ResponseEntity.ok(response);
+    }
+
+
+
+    @PostMapping("/logout")
+    public  ResponseEntity<CustomResponse<?>> logout(@RequestBody LogoutRequest request) {
+
+        refreshTokenService.deleteByToken(request.getRefreshToken());
+
+
+        CustomResponse<String> response = CustomResponse.<String>builder()
+                .success(true)
+                .message("Logout successful")
+                .data(null)
+                .build();
+
+        return ResponseEntity.ok(response);
+
+
+
     }
 
 
