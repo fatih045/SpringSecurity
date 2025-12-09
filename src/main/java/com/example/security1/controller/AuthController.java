@@ -12,6 +12,12 @@ import com.example.security1.util.CodeGenerator;
 import com.example.security1.util.JwtUtil;
 import com.example.security1.entity.User;
 import com.example.security1.repository.UserRepository;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -31,6 +37,7 @@ import java.util.HashSet;
 
 @RestController
 @RequestMapping("/api/auth")
+@Tag(name = "Authentication", description = "Authentication management APIs")
 public class AuthController {
 
 
@@ -69,6 +76,21 @@ public class AuthController {
 
 
     @PostMapping("/register")
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "User registered successfully",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = CustomResponse.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Invalid input or user already exists",
+                    content = @Content(mediaType = "application/json")
+            )
+    })
     public ResponseEntity<CustomResponse<?>> register(@Valid  @RequestBody RegisterRequest registerRequest) {
 
         if (userRepository.existsByUsername(registerRequest.getUsername())) {
@@ -121,6 +143,30 @@ public class AuthController {
 
 
     @PostMapping("verify")
+    @Operation(
+            summary = "Verify email address",
+            description = "Verifies user's email address using the verification code sent to their email"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Email verified successfully",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = CustomResponse.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Invalid verification code or code expired",
+                    content = @Content(mediaType = "application/json")
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "User not found",
+                    content = @Content(mediaType = "application/json")
+            )
+    })
     public ResponseEntity<CustomResponse<?>> verifyEmail(@RequestBody VerifyRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new UserNotFoundException("User not found!"));
@@ -153,6 +199,35 @@ public class AuthController {
 
 
     @PostMapping("/login")
+    @Operation(
+            summary = "User login",
+            description = "Authenticates user and returns access token and refresh token"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Login successful",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = CustomResponse.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Invalid credentials",
+                    content = @Content(mediaType = "application/json")
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Email not verified",
+                    content = @Content(mediaType = "application/json")
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "User not found",
+                    content = @Content(mediaType = "application/json")
+            )
+    })
     public ResponseEntity<CustomResponse<?>> login(@RequestBody LoginRequest loginRequest) {
 
          User user = userRepository.findByUsername(loginRequest.getUsername())
@@ -195,6 +270,25 @@ public class AuthController {
 
 
     @PostMapping("/logout")
+    @Operation(
+            summary = "User logout",
+            description = "Invalidates the refresh token and logs out the user"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Logout successful",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = CustomResponse.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Invalid refresh token",
+                    content = @Content(mediaType = "application/json")
+            )
+    })
     public  ResponseEntity<CustomResponse<?>> logout(@RequestBody LogoutRequest request) {
 
         refreshTokenService.deleteByToken(request.getRefreshToken());
@@ -214,6 +308,26 @@ public class AuthController {
 
     @PostMapping("/refresh")
     @Transactional
+    @Operation(
+            summary = "Refresh access token",
+            description = "Generates a new access token and refresh token using the current refresh token"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Token refreshed successfully",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = CustomResponse.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Invalid or expired refresh token",
+                    content = @Content(mediaType = "application/json")
+            )
+    })
+
     public  ResponseEntity<CustomResponse<?>>  refreshToken(@RequestBody RefreshTokenRequest request) {
 
        RefreshToken oldRefreshToken = refreshTokenService.findByToken(request.getRefreshToken());
