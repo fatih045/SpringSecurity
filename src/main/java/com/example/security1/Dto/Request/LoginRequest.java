@@ -1,4 +1,4 @@
-package com.example.security1.Dto;
+package com.example.security1.Dto.Request;
 
 import lombok.Data;
 
